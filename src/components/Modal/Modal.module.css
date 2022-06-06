@@ -1,0 +1,41 @@
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1200;
+}
+
+.content {
+    position: relative;
+    width: calc(100vw - 100px);
+    height: calc(100vh - 100px);
+}
+
+.closeModal {
+    position: absolute;
+    top: 0.5em;
+    right: 0.5em;
+    width: 2.5em;
+    height: 2.5em;
+    padding: 0;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    color: #ffffff;
+    background-color: transparent;
+}
+
+.closeModalIcon {
+    width: inherit;
+    height: inherit;
+}
+
+.closeModalIcon path {
+    stroke: currentColor;
+}
