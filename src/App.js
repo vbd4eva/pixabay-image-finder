@@ -124,9 +124,6 @@ export default class App extends PureComponent {
   }
 
   failPixabayConnectionHandler = () => {
-    alert(
-      "Pixabay server is unavailable! Please check your internet connection."
-    );
     this.setState({ status: statuses.REJECTED });
   };
 
