@@ -126,7 +126,6 @@ export default class App extends PureComponent {
   failPixabayConnectionHandler = () => {
     this.setState({ status: statuses.REJECTED });
   };
-
   render() {
     const isNothingFinded = this.#currentApiResult?.amount === 0;
 
