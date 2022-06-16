@@ -1,6 +1,4 @@
-import { PureComponent } from "react";
-
-// import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 import statuses from "./json/statuses.json";
 import ApiService from "./controllers/apiService";
@@ -15,94 +13,89 @@ import PixabayLogo from "./components/PixabayLogo/PixabayLogo";
 import Modal from "./components/Modal";
 import Slider from "./components/Slider";
 
-export default class App extends PureComponent {
-  state = {
-    searchQuery: "",
-    status: statuses.IDLE,
-    gallery: [],
-    showModaL: false,
-    currentGalleryItem: null,
-  };
+function App() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [status, setStatus] = useState(statuses.IDLE);
+  const [gallery, setGallery] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [currentGalleryItem, setCurrentGalleryItem] = useState(null);
 
-  #currentApiResult = null;
+  const currentApiResult = useRef(null);
+  const Pixabay = useRef(new ApiService());
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.searchQuery !== this.state.searchQuery) this.getImages();
+  const memoGetImages = useCallback(async () => {
+    setStatus(statuses.PENDING);
 
-    if (prevState.gallery !== this.state.gallery && this.state.showModaL) {
-      this.setNextCurrentImg();
-    }
-  }
+    currentApiResult.current = await Pixabay.current.getImages(searchQuery);
 
-  handleSearchQuery = (searchQuery) => {
-    this.setState({ searchQuery });
-  };
+    const isResolve = Boolean(currentApiResult.current);
+    const isListNew = currentApiResult.current?.isQueryNew;
 
-  getGalleryItemByIndex(index) {
-    const isFirst = index === 0;
-    const isLast = this.state.gallery.length - 1 === index;
-
-    const isFinal = isLast && this.isGalleryComplete();
-    return { ...this.state.gallery[index], index, isFirst, isLast, isFinal };
-  }
-
-  pixabay = new ApiService();
-  getImages = async () => {
-    this.setState({ status: statuses.PENDING });
-
-    this.#currentApiResult = await this.pixabay.getImages(
-      this.state.searchQuery
+    setGallery((state) =>
+      isListNew
+        ? currentApiResult.current.images
+        : [...state, ...currentApiResult.current.images]
     );
 
-    const isResolve = Boolean(this.#currentApiResult);
-    const isListNew = this.#currentApiResult?.isQueryNew;
+    setStatus(isResolve ? statuses.RESOLVED : statuses.REJECTED);
+  }, [searchQuery]);
 
-    this.setState(({ gallery }) => {
-      const newState = {
-        status: isResolve ? statuses.RESOLVED : statuses.REJECTED,
-      };
-      if (isResolve) {
-        newState.gallery = isListNew
-          ? this.#currentApiResult.images
-          : [...gallery, ...this.#currentApiResult.images];
-      }
-      return newState;
-    });
-  };
+  //
+  useEffect(() => {
+    if (searchQuery) memoGetImages();
+  }, [memoGetImages, searchQuery]);
 
-  isGalleryComplete() {
-    if (!this.#currentApiResult?.pagination) return false;
-    const { amount } = this.#currentApiResult;
-    return amount === this.state.gallery.length;
+  useEffect(() => {
+    if (gallery.length && showModal) setNextCurrentImg();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gallery.length]);
+
+  //
+  function handleSearchQuery(searchQuery) {
+    setSearchQuery(searchQuery);
   }
-  isGalleryNotEmpty() {
-    return this.state.gallery.length > 0;
+  //
+  const isNothingFinded = () => currentApiResult.current?.amount === 0;
+  function isGalleryNotEmpty() {
+    return gallery.length > 0;
   }
+  function isGalleryComplete() {
+    if (!currentApiResult.current?.pagination) return false;
+    const { amount } = currentApiResult.current;
+    return amount === gallery.length;
+  }
+  function getGalleryItemByIndex(index) {
+    const isFirst = index === 0;
+    const isLast = gallery.length - 1 === index;
 
-  showModal = (index) => {
-    this.setState({
-      currentGalleryItem: this.getGalleryItemByIndex(index),
-      showModaL: true,
-    });
+    const isFinal = isLast && isGalleryComplete();
+    return { ...gallery[index], index, isFirst, isLast, isFinal };
+  }
+  //
+  const renderModal = (index) => {
+    console.log("index");
+    console.log(index);
+    setCurrentGalleryItem(getGalleryItemByIndex(index));
+    setShowModal(true);
   };
-  closeModal = () => {
-    this.setState({ showModaL: false });
+  const closeModal = () => {
+    setShowModal(false);
   };
-  getPrevSlide = () => {
-    const { isFirst, index } = this.state.currentGalleryItem;
+  const getPrevSlide = () => {
+    const { isFirst, index } = currentGalleryItem;
 
     if (isFirst) {
-      console.log("перведущего нет, текущий - прервый");
+      console.log(
+        "Previous Slide is not avelable, the current slide if first !"
+      );
       return;
     }
 
     const newIndx = index - 1;
-    this.setState({
-      currentGalleryItem: this.getGalleryItemByIndex(newIndx),
-    });
+    setCurrentGalleryItem(getGalleryItemByIndex(newIndx));
   };
-  getNextSlide = () => {
-    const { isLast, isFinal } = this.state.currentGalleryItem;
+  const getNextSlide = () => {
+    const { isLast, isFinal } = currentGalleryItem;
 
     if (isFinal) {
       console.warn("Error - next slide is absent , current is final!");
@@ -110,97 +103,83 @@ export default class App extends PureComponent {
     }
 
     if (isLast) {
-      // console.log("Фетч следующей страницы");
-      this.getImages();
+      memoGetImages();
       return;
     }
-    this.setNextCurrentImg();
+    setNextCurrentImg();
   };
-  setNextCurrentImg() {
-    const { index } = this.state.currentGalleryItem;
-    this.setState({
-      currentGalleryItem: this.getGalleryItemByIndex(index + 1),
-    });
+  function setNextCurrentImg() {
+    const { index } = currentGalleryItem;
+    setCurrentGalleryItem(getGalleryItemByIndex(index + 1));
   }
-
-  failPixabayConnectionHandler = () => {
-    this.setState({ status: statuses.REJECTED });
+  //
+  const failPixabayConnectionHandler = () => {
+    setStatus(statuses.REJECTED);
   };
-  render() {
-    const isNothingFinded = this.#currentApiResult?.amount === 0;
 
-    return (
-      <>
-        <Searchbar
-          onSubmit={this.handleSearchQuery}
-          status={this.state.status}
-        />
+  return (
+    <>
+      <Searchbar onSubmit={handleSearchQuery} status={status} />
 
-        {this.isGalleryNotEmpty() ? (
-          <>
-            <ImageGallery
-              images={this.state.gallery}
-              onGalleryItemClick={this.showModal}
-              status={this.state.status}
-            />
-            <Message>
-              {this.isGalleryComplete() ? (
-                <p>
-                  Thats all over pixabay results by query '
-                  <b>{this.state.searchQuery}</b>'.
-                </p>
-              ) : (
-                <LoadMoreBtn
-                  onClick={this.getImages}
-                  status={this.state.status}
-                />
-              )}
-            </Message>
-          </>
-        ) : (
-          <>
-            {" "}
-            <FullScreenCenterWrapper>
-              {this.state.status === statuses.IDLE && (
-                <Message>
-                  <>
-                    <p>
-                      The ability to find images, implemented by using the
-                      Pixabay API.
-                    </p>
-                    <PixabayLogo
-                      onLoadError={this.failPixabayConnectionHandler}
-                    />
-                  </>
-                </Message>
-              )}
-              {isNothingFinded && (
-                <Message>
-                  <NothingFinded searchQuery={this.state.searchQuery} />
-                </Message>
-              )}
-            </FullScreenCenterWrapper>
-            {this.state.status === statuses.REJECTED && (
-              <SomethingWentWrong>
-                Oops..
-                <br />
-                something went wrong whith Pixabay server interaction. Check
-                your internet connection, or try again later.
-              </SomethingWentWrong>
+      {isGalleryNotEmpty() ? (
+        <>
+          <ImageGallery
+            images={gallery}
+            onGalleryItemClick={renderModal}
+            status={status}
+          />
+          <Message>
+            {isGalleryComplete() ? (
+              <p>
+                Thats all over pixabay results by query '<b>{searchQuery}</b>'.
+              </p>
+            ) : (
+              <LoadMoreBtn onClick={memoGetImages} status={status} />
             )}
-          </>
-        )}
+          </Message>
+        </>
+      ) : (
+        <>
+          <FullScreenCenterWrapper>
+            {status === statuses.IDLE && (
+              <Message>
+                <>
+                  <p>
+                    The ability to find images, implemented by using the Pixabay
+                    API.
+                  </p>
+                  <PixabayLogo onLoadError={failPixabayConnectionHandler} />
+                </>
+              </Message>
+            )}
+            {isNothingFinded() && (
+              <Message>
+                <NothingFinded searchQuery={searchQuery} />
+              </Message>
+            )}
+          </FullScreenCenterWrapper>
+          {status === statuses.REJECTED && (
+            <SomethingWentWrong>
+              Oops..
+              <br />
+              something went wrong whith Pixabay server interaction. Check your
+              internet connection, or try again later.
+            </SomethingWentWrong>
+          )}
+        </>
+      )}
 
-        {this.state.showModaL && (
-          <Modal onClose={this.closeModal}>
-            <Slider
-              current={this.state.currentGalleryItem}
-              onPrevSlide={this.getPrevSlide}
-              onNextSlide={this.getNextSlide}
-            />
-          </Modal>
-        )}
-      </>
-    );
-  }
+      {showModal && (
+        <Modal onClose={closeModal}>
+          <Slider
+            current={currentGalleryItem}
+            onPrevSlide={getPrevSlide}
+            onNextSlide={getNextSlide}
+          />
+        </Modal>
+      )}
+    </>
+  );
 }
+
+export default App;
