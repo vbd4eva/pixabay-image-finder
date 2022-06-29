@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useContext } from "react";
 
-// import statuses from "./json/statuses.json";
+import statusContext from "./context/status/context";
 import ApiService from "./controllers/apiService";
 import ImageGallery from "./components/ImageGallery";
 import Searchbar from "./components/Searchbar";
@@ -12,19 +12,12 @@ import Message from "./components/FullScreenCenterWrapper/Message/Message";
 import PixabayLogo from "./components/PixabayLogo/PixabayLogo";
 import Modal from "./components/Modal";
 import Slider from "./components/Slider";
-// import statusContext from "./contexts/status-context";
-import {
-  checkStatus,
-  StatusState,
-  IDLE,
-  PENDING,
-  RESOLVED,
-  REJECTED,
-} from "./controllers/status";
 
 function App() {
+  const { setStatus, checkStatus, IDLE, PENDING, RESOLVED, REJECTED } =
+    useContext(statusContext);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const setStatus = StatusState();
   const [gallery, setGallery] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [currentGalleryItem, setCurrentGalleryItem] = useState(null);
