@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
-import statuses from "./json/statuses.json";
+// import statuses from "./json/statuses.json";
 import ApiService from "./controllers/apiService";
 import ImageGallery from "./components/ImageGallery";
 import Searchbar from "./components/Searchbar";
@@ -12,10 +12,19 @@ import Message from "./components/FullScreenCenterWrapper/Message/Message";
 import PixabayLogo from "./components/PixabayLogo/PixabayLogo";
 import Modal from "./components/Modal";
 import Slider from "./components/Slider";
+// import statusContext from "./contexts/status-context";
+import {
+  checkStatus,
+  StatusState,
+  IDLE,
+  PENDING,
+  RESOLVED,
+  REJECTED,
+} from "./controllers/status";
 
 function App() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [status, setStatus] = useState(statuses.IDLE);
+  const setStatus = StatusState();
   const [gallery, setGallery] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [currentGalleryItem, setCurrentGalleryItem] = useState(null);
@@ -24,7 +33,7 @@ function App() {
   const Pixabay = useRef(new ApiService());
 
   const memoGetImages = useCallback(async () => {
-    setStatus(statuses.PENDING);
+    setStatus(PENDING);
 
     currentApiResult.current = await Pixabay.current.getImages(searchQuery);
 
@@ -37,7 +46,8 @@ function App() {
         : [...state, ...currentApiResult.current.images]
     );
 
-    setStatus(isResolve ? statuses.RESOLVED : statuses.REJECTED);
+    setStatus(isResolve ? RESOLVED : REJECTED);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   //
@@ -114,34 +124,31 @@ function App() {
   }
   //
   const failPixabayConnectionHandler = () => {
-    setStatus(statuses.REJECTED);
+    setStatus(REJECTED);
   };
 
   return (
     <>
-      <Searchbar onSubmit={handleSearchQuery} status={status} />
+      {/*  <statusContext.Provider value={{ status }}> */}
+      <Searchbar onSubmit={handleSearchQuery} />
 
       {isGalleryNotEmpty() ? (
         <>
-          <ImageGallery
-            images={gallery}
-            onGalleryItemClick={renderModal}
-            status={status}
-          />
+          <ImageGallery images={gallery} onGalleryItemClick={renderModal} />
           <Message>
             {isGalleryComplete() ? (
               <p>
                 Thats all over pixabay results by query '<b>{searchQuery}</b>'.
               </p>
             ) : (
-              <LoadMoreBtn onClick={memoGetImages} status={status} />
+              <LoadMoreBtn onClick={memoGetImages} />
             )}
           </Message>
         </>
       ) : (
         <>
           <FullScreenCenterWrapper>
-            {status === statuses.IDLE && (
+            {checkStatus(IDLE) && (
               <Message>
                 <>
                   <p>
@@ -158,7 +165,7 @@ function App() {
               </Message>
             )}
           </FullScreenCenterWrapper>
-          {status === statuses.REJECTED && (
+          {checkStatus(REJECTED) && (
             <SomethingWentWrong>
               Oops..
               <br />
@@ -178,6 +185,7 @@ function App() {
           />
         </Modal>
       )}
+      {/* </statusContext.Provider> */}
     </>
   );
 }

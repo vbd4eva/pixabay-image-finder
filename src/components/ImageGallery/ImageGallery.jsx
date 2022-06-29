@@ -4,9 +4,9 @@ import s from "./ImageGallery.module.css";
 
 import ImageGalleryItem from "./ImageGalleryItem/";
 import { RotatingLines } from "react-loader-spinner";
-import statuses from "../../json/statuses.json";
+import { checkStatus, PENDING } from "../../controllers/status";
 
-function ImageGallery({ onGalleryItemClick, status, images }) {
+function ImageGallery({ onGalleryItemClick, images }) {
   return (
     <>
       <ul className={s.gallery}>
@@ -21,7 +21,7 @@ function ImageGallery({ onGalleryItemClick, status, images }) {
           />
         ))}
       </ul>
-      {status === statuses.PENDING && (
+      {checkStatus(PENDING) && (
         <div>
           <RotatingLines width="24" strokeColor="currentColor" />
         </div>
@@ -32,7 +32,6 @@ function ImageGallery({ onGalleryItemClick, status, images }) {
 
 ImageGallery.propTypes = {
   onGalleryItemClick: PropTypes.func.isRequired,
-  status: PropTypes.string,
   images: PropTypes.arrayOf(
     PropTypes.shape({ id: PropTypes.number.isRequired })
   ).isRequired,

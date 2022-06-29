@@ -2,12 +2,12 @@ import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 
 import s from "./SearchingForm.module.css";
-import statuses from "../../../json/statuses.json";
 import Btn from "./Btn/Btn";
 import { GrFormSearch } from "react-icons/gr";
 import { GrFormClose } from "react-icons/gr";
+import { checkStatus, PENDING } from "../../../controllers/status";
 
-function SearchingForm({ onSubmit, status }) {
+function SearchingForm({ onSubmit }) {
   const [inputText, setInputText] = useState("");
 
   const showSubmitBtn = useRef(false);
@@ -16,7 +16,7 @@ function SearchingForm({ onSubmit, status }) {
 
   const submitForm = (e) => {
     e.preventDefault();
-    if (status === statuses.PENDING) return;
+    if (checkStatus(PENDING)) return;
     const searchQuery = inputText.toLocaleLowerCase().trim();
     searchQuery && onSubmit(searchQuery);
     showSubmitBtn.current = false;
@@ -35,7 +35,7 @@ function SearchingForm({ onSubmit, status }) {
   return (
     <form className={s.form} onSubmit={submitForm} onReset={resetForm}>
       {isSubmitBtnNeedToRender() && (
-        <Btn status={status} text="Search" type="submit">
+        <Btn text="Search" type="submit">
           <GrFormSearch size="2.5em" />
         </Btn>
       )}
@@ -50,7 +50,7 @@ function SearchingForm({ onSubmit, status }) {
         onChange={inputChangeHandler}
       />
       {showResetBtn && (
-        <Btn status={status} text="Reset form" type="reset">
+        <Btn text="Reset form" type="reset">
           <GrFormClose size="1.5em" />
         </Btn>
       )}
@@ -60,7 +60,6 @@ function SearchingForm({ onSubmit, status }) {
 
 SearchingForm.propTypes = {
   onSubmit: PropTypes.func.isRequired,
-  status: PropTypes.string.isRequired,
 };
 
 export default SearchingForm;
